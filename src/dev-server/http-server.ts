@@ -42,6 +42,11 @@ export function createHttpServer(config: ServeConfig): express.Application {
   app.get('/cordova.js', servePlatformResource, serveMockCordovaJS);
   app.get('/cordova_plugins.js', servePlatformResource);
   app.get('/plugins/*', servePlatformResource);
+  
+  // temporary fix issue with PathLocationStrategy until Ionic 4 releases
+  // https://github.com/ionic-team/ionic/issues/10565
+  // https://github.com/ionic-team/ionic-app-scripts/issues/1263
+  app.use(serveIndex);
 
   if (config.useProxy) {
     setupProxies(app);
