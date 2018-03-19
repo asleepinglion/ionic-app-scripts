@@ -29,6 +29,56 @@ export function createHttpServer(config: ServeConfig): express.Application {
   const app = express();
   app.set('serveConfig', config);
 
+  // temporarily fix issues related to the path location strategy and ionic tabs until v4 release
+  // todo: make this based off a map passed through the config object?
+  app.use(function(req, res, next) {
+
+    var rootIndex = -1;
+    var newUrl = '';
+
+    // fix build file requests
+    rootIndex = req.url.indexOf('/build');
+    if ( rootIndex > 0 ) {
+      newUrl = req.url.substr(rootIndex, req.url.length-rootIndex);
+      console.log('redirecting build file request:', newUrl);
+      res.redirect(newUrl);
+      return;
+    }
+
+    // fix ion-dev-server file requests
+    rootIndex = req.url.indexOf('/__ion-dev-server');
+    if ( rootIndex > 0 ) {
+      newUrl = req.url.substr(rootIndex, req.url.length -rootIndex);
+      console.log('redirecting dev-server file request:', newUrl);
+      res.redirect(newUrl);
+      return;
+    }
+
+    // fix assets file requests
+    rootIndex = req.url.indexOf('/assets');
+    if ( rootIndex > 0 ) {
+      newUrl = req.url.substr(rootIndex, req.url.length - rootIndex);
+      console.log('redirecting assets file request:', newUrl);
+      res.redirect(newUrl);
+      return;
+    }
+
+    // fix assets file requests
+    rootIndex = req.url.indexOf('/cordova.js');
+    if ( rootIndex > 0 ) {
+      newUrl = req.url.substr(rootIndex, req.url.length - rootIndex);
+      console.log('redirecting cordova.js file request:', newUrl);
+      res.redirect(newUrl);
+      return;
+    }
+
+    // otherwise continue as normal
+    if ( rootIndex <= 0 ) {
+      next();
+    }
+
+  });
+
   app.get('/', serveIndex);
   app.use('/', express.static(config.wwwDir));
   app.use(`/${LOGGER_DIR}`, express.static(path.join(__dirname, '..', '..', 'bin'), { maxAge: 31536000 }));
@@ -42,7 +92,7 @@ export function createHttpServer(config: ServeConfig): express.Application {
   app.get('/cordova.js', servePlatformResource, serveMockCordovaJS);
   app.get('/cordova_plugins.js', servePlatformResource);
   app.get('/plugins/*', servePlatformResource);
-  
+
   // temporary fix issue with PathLocationStrategy until Ionic 4 releases
   // https://github.com/ionic-team/ionic/issues/10565
   // https://github.com/ionic-team/ionic-app-scripts/issues/1263
