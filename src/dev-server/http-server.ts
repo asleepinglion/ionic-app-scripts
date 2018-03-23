@@ -20,6 +20,19 @@ import { getProjectJson, IonicProject } from '../util/ionic-project';
 
 import { LabAppView, ApiCordovaProject, ApiPackageJson } from './lab';
 
+/**
+ * Redirect path to fix issue with path location strategy and tabs/nested navigation
+ */
+export function redirectRoot(req: express.Request, res: express.Response, rootPath: string): boolean {
+  const rootIndex = req.url.indexOf(rootPath);
+  if ( rootIndex > 0 ) {
+    const newUrl = req.url.substr(rootIndex, req.url.length - rootIndex);
+    // console.log('redirecting build file request:', newUrl);
+    res.redirect(newUrl);
+    return true;
+  }
+  return false;
+}
 
 /**
  * Create HTTP server
@@ -32,51 +45,12 @@ export function createHttpServer(config: ServeConfig): express.Application {
   // temporarily fix issues related to the path location strategy and ionic tabs until v4 release
   // todo: make this based off a map passed through the config object?
   app.use(function(req, res, next) {
-
-    var rootIndex = -1;
-    var newUrl = '';
-
-    // fix build file requests
-    rootIndex = req.url.indexOf('/build');
-    if ( rootIndex > 0 ) {
-      newUrl = req.url.substr(rootIndex, req.url.length-rootIndex);
-      console.log('redirecting build file request:', newUrl);
-      res.redirect(newUrl);
-      return;
-    }
-
-    // fix ion-dev-server file requests
-    rootIndex = req.url.indexOf('/__ion-dev-server');
-    if ( rootIndex > 0 ) {
-      newUrl = req.url.substr(rootIndex, req.url.length -rootIndex);
-      console.log('redirecting dev-server file request:', newUrl);
-      res.redirect(newUrl);
-      return;
-    }
-
-    // fix assets file requests
-    rootIndex = req.url.indexOf('/assets');
-    if ( rootIndex > 0 ) {
-      newUrl = req.url.substr(rootIndex, req.url.length - rootIndex);
-      console.log('redirecting assets file request:', newUrl);
-      res.redirect(newUrl);
-      return;
-    }
-
-    // fix assets file requests
-    rootIndex = req.url.indexOf('/cordova.js');
-    if ( rootIndex > 0 ) {
-      newUrl = req.url.substr(rootIndex, req.url.length - rootIndex);
-      console.log('redirecting cordova.js file request:', newUrl);
-      res.redirect(newUrl);
-      return;
-    }
-
-    // otherwise continue as normal
-    if ( rootIndex <= 0 ) {
-      next();
-    }
-
+    if ( redirectRoot(req, res, '/build') ) { return; }
+    if ( redirectRoot(req, res, '/__ion-dev-server') ) { return; }
+    if ( redirectRoot(req, res, '/assets') ) { return; }
+    if ( redirectRoot(req, res, '/cordova.js') ) { return; }
+    if ( redirectRoot(req, res, '/manifest.json') ) { return; }
+    next();
   });
 
   app.get('/', serveIndex);

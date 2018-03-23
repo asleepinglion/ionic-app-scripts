@@ -15,6 +15,20 @@ var helpers_1 = require("../util/helpers");
 var ionic_project_1 = require("../util/ionic-project");
 var lab_1 = require("./lab");
 /**
+ * Redirect path to fix issue with path location strategy and tabs/nested navigation
+ */
+function redirectRoot(req, res, rootPath) {
+    var rootIndex = req.url.indexOf(rootPath);
+    if (rootIndex > 0) {
+        var newUrl = req.url.substr(rootIndex, req.url.length - rootIndex);
+        // console.log('redirecting build file request:', newUrl);
+        res.redirect(newUrl);
+        return true;
+    }
+    return false;
+}
+exports.redirectRoot = redirectRoot;
+/**
  * Create HTTP server
  */
 function createHttpServer(config) {
@@ -23,44 +37,22 @@ function createHttpServer(config) {
     // temporarily fix issues related to the path location strategy and ionic tabs until v4 release
     // todo: make this based off a map passed through the config object?
     app.use(function (req, res, next) {
-        var rootIndex = -1;
-        var newUrl = '';
-        // fix build file requests
-        rootIndex = req.url.indexOf('/build');
-        if (rootIndex > 0) {
-            newUrl = req.url.substr(rootIndex, req.url.length - rootIndex);
-            console.log('redirecting build file request:', newUrl);
-            res.redirect(newUrl);
+        if (redirectRoot(req, res, '/build')) {
             return;
         }
-        // fix ion-dev-server file requests
-        rootIndex = req.url.indexOf('/__ion-dev-server');
-        if (rootIndex > 0) {
-            newUrl = req.url.substr(rootIndex, req.url.length - rootIndex);
-            console.log('redirecting dev-server file request:', newUrl);
-            res.redirect(newUrl);
+        if (redirectRoot(req, res, '/__ion-dev-server')) {
             return;
         }
-        // fix assets file requests
-        rootIndex = req.url.indexOf('/assets');
-        if (rootIndex > 0) {
-            newUrl = req.url.substr(rootIndex, req.url.length - rootIndex);
-            console.log('redirecting assets file request:', newUrl);
-            res.redirect(newUrl);
+        if (redirectRoot(req, res, '/assets')) {
             return;
         }
-        // fix assets file requests
-        rootIndex = req.url.indexOf('/cordova.js');
-        if (rootIndex > 0) {
-            newUrl = req.url.substr(rootIndex, req.url.length - rootIndex);
-            console.log('redirecting cordova.js file request:', newUrl);
-            res.redirect(newUrl);
+        if (redirectRoot(req, res, '/cordova.js')) {
             return;
         }
-        // otherwise continue as normal
-        if (rootIndex <= 0) {
-            next();
+        if (redirectRoot(req, res, '/manifest.json')) {
+            return;
         }
+        next();
     });
     app.get('/', serveIndex);
     app.use('/', express.static(config.wwwDir));
